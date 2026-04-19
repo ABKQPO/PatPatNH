@@ -1,6 +1,8 @@
 package com.hfstudio.patpat.client.render;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
@@ -9,6 +11,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderLivingEvent;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
 
 import org.lwjgl.opengl.GL11;
@@ -24,6 +27,39 @@ public final class PatPatClientRenderer {
 
     private static final PatPatClientRenderer INSTANCE = new PatPatClientRenderer();
     private static final Set<Integer> SCALED_ENTITIES = new HashSet<>();
+    private static final List<PatOverlayRequest> PENDING_OVERLAYS = new ArrayList<PatOverlayRequest>();
+
+    private static final boolean MIRROR_TEXTURE = true;
+
+    private static final class PatOverlayRequest {
+
+        private final ResourceLocation texture;
+        private final float x;
+        private final float y;
+        private final float z;
+        private final float offsetX;
+        private final float width;
+        private final float height;
+        private final float minU;
+        private final float maxU;
+        private final float minV;
+        private final float maxV;
+
+        private PatOverlayRequest(ResourceLocation texture, float x, float y, float z, float offsetX, float width,
+            float height, float minU, float maxU, float minV, float maxV) {
+            this.texture = texture;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.offsetX = offsetX;
+            this.width = width;
+            this.height = height;
+            this.minU = minU;
+            this.maxU = maxU;
+            this.minV = minV;
+            this.maxV = maxV;
+        }
+    }
 
     private PatPatClientRenderer() {}
 
@@ -95,37 +131,65 @@ public final class PatPatClientRenderer {
         float yProgress = (1.0F - range) + range * (1.0F - (float) Math.sin(easedProgress * Math.PI));
         float yOffset = event.entity.height * yProgress + 0.11F + frame.getOffsetY();
 
-        Minecraft.getMinecraft()
-            .getTextureManager()
-            .bindTexture(texture);
+        PENDING_OVERLAYS.add(
+            new PatOverlayRequest(
+                texture,
+                (float) event.x,
+                (float) (event.y + yOffset),
+                (float) (event.z + frame.getOffsetZ()),
+                frame.getOffsetX(),
+                width,
+                height,
+                minU,
+                maxU,
+                minV,
+                maxV));
+    }
 
-        GL11.glPushMatrix();
-        GL11.glTranslated(event.x, event.y + yOffset, event.z + frame.getOffsetZ());
-        GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
-        GL11.glRotatef(RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
-        GL11.glTranslatef(frame.getOffsetX(), 0.0F, 0.0F);
-        GL11.glDisable(GL11.GL_LIGHTING);
-        GL11.glDisable(GL11.GL_CULL_FACE);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthMask(false);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+    @SubscribeEvent
+    public void onRenderWorldLast(RenderWorldLastEvent event) {
+        if (PENDING_OVERLAYS.isEmpty()) {
+            return;
+        }
 
-        Tessellator tessellator = Tessellator.instance;
-        tessellator.startDrawingQuads();
-        tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
-        tessellator.addVertexWithUV(-width, 0.0F, 0.0F, minU, maxV);
-        tessellator.addVertexWithUV(width, 0.0F, 0.0F, maxU, maxV);
-        tessellator.addVertexWithUV(width, height * 2.0F, 0.0F, maxU, minV);
-        tessellator.addVertexWithUV(-width, height * 2.0F, 0.0F, minU, minV);
-        tessellator.draw();
+        for (PatOverlayRequest request : PENDING_OVERLAYS) {
+            Minecraft.getMinecraft()
+                .getTextureManager()
+                .bindTexture(request.texture);
 
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glDepthMask(true);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glEnable(GL11.GL_CULL_FACE);
-        GL11.glEnable(GL11.GL_LIGHTING);
-        GL11.glPopMatrix();
+            float drawMinU = MIRROR_TEXTURE ? request.maxU : request.minU;
+            float drawMaxU = MIRROR_TEXTURE ? request.minU : request.maxU;
+
+            GL11.glPushMatrix();
+            GL11.glTranslated(request.x, request.y, request.z);
+            GL11.glRotatef(-RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
+            GL11.glRotatef(RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
+            GL11.glTranslatef(request.offsetX, 0.0F, 0.0F);
+            GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthMask(false);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+
+            Tessellator tessellator = Tessellator.instance;
+            tessellator.startDrawingQuads();
+            tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
+            tessellator.addVertexWithUV(-request.width, 0.0F, 0.0F, drawMinU, request.maxV);
+            tessellator.addVertexWithUV(request.width, 0.0F, 0.0F, drawMaxU, request.maxV);
+            tessellator.addVertexWithUV(request.width, request.height * 2.0F, 0.0F, drawMaxU, request.minV);
+            tessellator.addVertexWithUV(-request.width, request.height * 2.0F, 0.0F, drawMinU, request.minV);
+            tessellator.draw();
+
+            GL11.glDisable(GL11.GL_BLEND);
+            GL11.glDepthMask(true);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glEnable(GL11.GL_LIGHTING);
+            GL11.glPopMatrix();
+        }
+
+        PENDING_OVERLAYS.clear();
     }
 }

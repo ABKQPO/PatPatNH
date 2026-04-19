@@ -1,11 +1,11 @@
 package com.hfstudio.patpat;
 
-import com.hfstudio.patpat.config.PatPatConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.Tags;
 import com.hfstudio.patpat.common.network.PatPatNetworkManager;
+import com.hfstudio.patpat.config.PatPatConfig;
 import com.hfstudio.patpat.server.packet.PatPatServerPacketManager;
 
 import cpw.mods.fml.common.Mod;
