@@ -1,0 +1,17 @@
+{
+	"patpat": {
+		"sounds": [
+			"pat",
+			"pat1",
+			"pat2"
+		]
+	},
+	"lopi": {
+		"sounds": [
+			"lopi",
+			"lopi1",
+			"lopi2",
+			"lopi3"
+		]
+	}
+}

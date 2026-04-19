@@ -1,0 +1,16 @@
+patpat.gui.config.main=Main
+patpat.gui.config.main.modenabled=Enable Mod
+patpat.gui.config.main.modenabled.tooltip=Master switch for PatPat.
+patpat.gui.config.main.requiresneaking=Require Sneaking
+patpat.gui.config.main.requireemptymainhand=Require Empty Main Hand
+patpat.gui.config.main.patcooldownticks=Pat Cooldown
+patpat.gui.config.multiplayer=Multiplayer
+patpat.gui.config.multiplayer.enableserversync=Enable Server Sync
+patpat.gui.config.multiplayer.allowclientonly=Allow Client Only
+patpat.gui.config.resourcepacks=Resource Packs
+patpat.gui.config.resourcepacks.enablecustomanimations=Enable Custom Animations
+patpat.gui.config.resourcepacks.enableupstreampackcompatibility=Enable Upstream Pack Compatibility
+patpat.gui.config.sounds=Sounds
+patpat.gui.config.sounds.enabled=Enable Sounds
+patpat.gui.config.debug=Debug
+patpat.gui.config.debug.enabledebugmode=Debug Mode

@@ -1,0 +1,16 @@
+patpat.gui.config.main=主设置
+patpat.gui.config.main.modenabled=启用模组
+patpat.gui.config.main.modenabled.tooltip=PatPat 总开关。
+patpat.gui.config.main.requiresneaking=要求潜行
+patpat.gui.config.main.requireemptymainhand=要求主手空手
+patpat.gui.config.main.patcooldownticks=抚摸冷却
+patpat.gui.config.multiplayer=联机
+patpat.gui.config.multiplayer.enableserversync=启用服务端同步
+patpat.gui.config.multiplayer.allowclientonly=允许仅客户端使用
+patpat.gui.config.resourcepacks=资源包
+patpat.gui.config.resourcepacks.enablecustomanimations=启用自定义动画
+patpat.gui.config.resourcepacks.enableupstreampackcompatibility=启用上游资源包兼容模式
+patpat.gui.config.sounds=音效
+patpat.gui.config.sounds.enabled=启用音效
+patpat.gui.config.debug=调试
+patpat.gui.config.debug.enabledebugmode=调试模式
