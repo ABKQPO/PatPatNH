@@ -9,7 +9,6 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
@@ -20,6 +19,7 @@ import com.hfstudio.patpat.client.packet.PatPatClientPacketManager;
 import com.hfstudio.patpat.client.render.PatAnimationState;
 import com.hfstudio.patpat.client.resourcepack.PatPatClientResourcePackManager;
 import com.hfstudio.patpat.client.resourcepack.PatPatClientSoundManager;
+import com.hfstudio.patpat.common.interaction.PatPatInteractionPolicy;
 import com.hfstudio.patpat.config.PatPatConfig;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -28,7 +28,7 @@ import cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
 
-public final class PatPatClientManager {
+public class PatPatClientManager {
 
     private static final PatPatClientManager INSTANCE = new PatPatClientManager();
     private static final Map<Integer, PatAnimationState> ACTIVE_ANIMATIONS = new HashMap<>();
@@ -94,6 +94,10 @@ public final class PatPatClientManager {
             return;
         }
 
+        if (minecraft.thePlayer != null && sourceEntityId == minecraft.thePlayer.getEntityId()) {
+            setPatCooldown(PatPatConfig.main.patCooldownTicks);
+        }
+
         playPat(
             (EntityLivingBase) targetEntity,
             PlayerConfig.of(sourcePlayer.getCommandSenderName(), sourcePlayer.getUniqueID()),
@@ -118,13 +122,15 @@ public final class PatPatClientManager {
         }
 
         boolean serverUp = PatPatClientPacketManager.isServerAvailable();
+        if (shouldUseServerAuthority(serverUp)) {
+            setPatCooldown(PatPatConfig.main.patCooldownTicks);
+            PatPatClientPacketManager.sendPatToServer(target.getEntityId());
+            return;
+        }
+
         PlayerConfig self = PlayerConfig.of(player.getCommandSenderName(), player.getUniqueID());
         playPat(target, self, true);
         setPatCooldown(PatPatConfig.main.patCooldownTicks);
-
-        if (serverUp && PatPatConfig.multiplayer.enableServerSync) {
-            PatPatClientPacketManager.sendPatToServer(target.getEntityId());
-        }
     }
 
     @SubscribeEvent
@@ -156,31 +162,15 @@ public final class PatPatClientManager {
     }
 
     private static boolean canPat(EntityPlayer player, EntityLivingBase target) {
-        if (!isEnabled()) {
-            return false;
-        }
-        if (getPatCooldown() > 0) {
-            return false;
-        }
-        if (player.isDead) {
-            return false;
-        }
-        if (target.isDead) {
-            return false;
-        }
-        if (target.isInvisible()) {
-            return false;
-        }
-        if (PatPatConfig.main.requireSneaking && !player.isSneaking()) {
-            return false;
-        }
-        ItemStack heldItem = player.getHeldItem();
-        if (PatPatConfig.main.requireEmptyMainHand && heldItem != null) {
-            return false;
-        }
-        if (!PatPatClientPacketManager.isServerAvailable() && !PatPatConfig.multiplayer.allowClientOnly) {
-            return false;
-        }
-        return true;
+        return PatPatInteractionPolicy.canPatClient(
+            player,
+            target,
+            getPatCooldown(),
+            PatPatClientPacketManager.isServerAvailable(),
+            PatPatConfig.multiplayer.allowClientOnly);
+    }
+
+    private static boolean shouldUseServerAuthority(boolean serverAvailable) {
+        return serverAvailable && PatPatConfig.multiplayer.enableServerSync;
     }
 }

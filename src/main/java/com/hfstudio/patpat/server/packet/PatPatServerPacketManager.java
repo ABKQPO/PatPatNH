@@ -5,10 +5,10 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import com.hfstudio.patpat.PatPat;
+import com.hfstudio.patpat.common.interaction.PatPatInteractionPolicy;
 import com.hfstudio.patpat.common.network.message.HelloS2CPacket;
 import com.hfstudio.patpat.common.network.message.PatS2CPacket;
 import com.hfstudio.patpat.common.network.message.PatToServerC2SPacket;
-import com.hfstudio.patpat.config.PatPatConfig;
 import com.hfstudio.patpat.server.PatPatServerRateLimitManager;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -20,7 +20,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
-public final class PatPatServerPacketManager {
+public class PatPatServerPacketManager {
 
     private static final ServerEvents EVENTS = new ServerEvents();
 
@@ -34,19 +34,7 @@ public final class PatPatServerPacketManager {
     }
 
     private static boolean canPat(EntityPlayerMP sender, EntityLivingBase target) {
-        if (!PatPatConfig.main.modEnabled) {
-            return false;
-        }
-        if (PatPatConfig.main.requireSneaking && !sender.isSneaking()) {
-            return false;
-        }
-        if (PatPatConfig.main.requireEmptyMainHand && sender.getHeldItem() != null) {
-            return false;
-        }
-        if (target.isInvisible() || target.isDead) {
-            return false;
-        }
-        if (sender.getDistanceSqToEntity(target) > 36.0D) {
+        if (!PatPatInteractionPolicy.canPatServer(sender, target, sender.getDistanceSqToEntity(target) <= 36.0D)) {
             return false;
         }
         return PatPatServerRateLimitManager.tryPat(sender);
@@ -84,9 +72,6 @@ public final class PatPatServerPacketManager {
             PatS2CPacket broadcast = new PatS2CPacket(message.getTargetEntityId(), sender.getEntityId());
             for (Object playerObj : sender.worldObj.playerEntities) {
                 if (!(playerObj instanceof EntityPlayerMP otherPlayer)) {
-                    continue;
-                }
-                if (otherPlayer == sender) {
                     continue;
                 }
                 if (otherPlayer.dimension != sender.dimension) {
